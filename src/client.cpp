@@ -16,8 +16,6 @@
 
 using namespace std;
 
-// use fixed port for now
-const uint16_t PORT = 8080;
 const size_t BUFFER_SIZE = 1024;
 const chrono::seconds MESSAGE_PERIOD = chrono::seconds(1); // unit: second
 const chrono::seconds ZERO_SEC = chrono::seconds(0);       // unit: second
