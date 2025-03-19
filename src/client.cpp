@@ -1,3 +1,4 @@
+#include "./common.h"
 #include <arpa/inet.h>
 #include <array>
 #include <chrono>
@@ -73,21 +74,21 @@ auto parse_server_addr(int argc, char **argv) -> std::optional<sockaddr_in> {
 int main(int argc, char **argv) {
   auto server_addr_opt = parse_server_addr(argc, argv);
   if (!server_addr_opt.has_value()) {
-    cout << argv[0] << USAGE_MSG;
+    cout << USAGE_MSG;
     return 1;
   }
   auto server_addr = server_addr_opt.value();
 
   // Create socket
   // use IPPROTO_TCP instead of 0, because we only care about tcp connection.
-  auto sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sockfd == -1) {
+  FileDescriptor client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (client_socket == -1) {
     perror("Failed to create socket, Error");
     return 1;
   }
 
-  sockaddr *addr = reinterpret_cast<sockaddr *>(&server_addr);
-  if (connect(sockfd, addr, sizeof(server_addr)) == -1) {
+  const sockaddr *addr = reinterpret_cast<const sockaddr *>(&server_addr);
+  if (connect(client_socket, addr, sizeof(server_addr)) == -1) {
     perror("Connection failed, Error");
     return 1;
   }
@@ -96,14 +97,14 @@ int main(int argc, char **argv) {
   string message = "abcdefghijklmnopqrstuvwxyz";
 
   // Non-blocking way to send and receive message
-  auto send_msg = async(launch::async, send_message_and_wait, sockfd, message,
-                        MESSAGE_PERIOD);
-  auto receive_msg = async(launch::async, receive_message, sockfd);
+  auto send_msg = async(launch::async, send_message_and_wait, client_socket,
+                        message, MESSAGE_PERIOD);
+  auto receive_msg = async(launch::async, receive_message, client_socket);
 
   while (true) {
     if (send_msg.wait_for(ZERO_SEC) == future_status::ready) {
-      send_msg = async(launch::async, send_message_and_wait, sockfd, message,
-                       MESSAGE_PERIOD);
+      send_msg = async(launch::async, send_message_and_wait, client_socket,
+                       message, MESSAGE_PERIOD);
     }
 
     if (receive_msg.wait_for(ZERO_SEC) == future_status::ready) {
@@ -113,10 +114,9 @@ int main(int argc, char **argv) {
         break;
       }
       cout << "Server response: " << response.value() << endl;
-      receive_msg = async(launch::async, receive_message, sockfd);
+      receive_msg = async(launch::async, receive_message, client_socket);
     }
   }
 
-  close(sockfd);
   return 0;
 }

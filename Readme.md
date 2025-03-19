@@ -8,7 +8,7 @@
 - [X] basic build system
 - [X] tcp server
   - [X] listen to incoming connection
-- [ ] tcp client
+- [X] tcp client
   - [X] connect to a server
   - [X] send message periodically (e.g. every second)
   - [X] Handle large response (larger than buffer size)
@@ -17,8 +17,8 @@
 
 
 ## Idea for improvement
-- [ ] write a class to handle all the async task for client
-- [ ] Wrap file descriptor to handle `close` when out of scope
+- [ ] ~~write a class to handle all the async task for client~~
+- [X] Wrap file descriptor to handle `close` when out of scope
 
 ## Consideration
 - Use <experimental/net> header?
