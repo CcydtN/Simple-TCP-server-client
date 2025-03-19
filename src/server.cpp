@@ -1,7 +1,7 @@
 #include <arpa/inet.h>
 #include <array>
 #include <cstdint>
-#include <errno.h>
+#include <cstdio>
 #include <iostream>
 #include <netinet/in.h>
 #include <string>
@@ -18,7 +18,7 @@ void handle_client(int client_socket) {
   while (true) {
     ssize_t bytes_received = recv(client_socket, buffer.data(), BUFFER_SIZE, 0);
     if (bytes_received <= 0) {
-      std::cerr << "Client disconnected or error occurred." << std::endl;
+      std::perror("Client disconnected or error occurred. Error");
       close(client_socket);
       return;
     }
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   // use IPPROTO_TCP instead of 0, because we only care about tcp connection.
   int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1) {
-    std::cerr << "Failed to create socket" << std::endl;
+    std::perror("Failed to create socket, Error");
     return 1;
   }
 
@@ -50,12 +50,12 @@ int main(int argc, char **argv) {
   sockaddr *addr = reinterpret_cast<sockaddr *>(&server_addr);
 
   if (bind(sockfd, addr, sizeof(server_addr)) == -1) {
-    std::cerr << "Bind failed, errno " << errno << std::endl;
+    std::perror("Bind failed, Error");
     return 1;
   }
 
   if (listen(sockfd, 5) == -1) {
-    std::cerr << "Listen failed, errno" << errno << std::endl;
+    std::perror("Listen failed, Error");
     return 1;
   }
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     int client_socket =
         accept(sockfd, reinterpret_cast<sockaddr *>(&client_addr), &client_len);
     if (client_socket == -1) {
-      std::cerr << "Accept failed, errno" << errno << std::endl;
+      std::perror("Accept failed, Error");
       continue;
     }
     // Create thread for each client, to handle them concurrently.
