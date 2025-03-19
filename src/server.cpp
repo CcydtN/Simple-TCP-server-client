@@ -10,7 +10,11 @@
 #include <thread>
 #include <unistd.h>
 
+// Listen to loopback address ((127.0.0.1)) only.
+// Listen to all address use INADDR_ANY instead of INADDR_LOOPBACK
+const auto LISTEN_ADDR = INADDR_LOOPBACK;
 const uint16_t PORT = 8080;
+const int MAX_CLIENT_COUNT = 5;
 const size_t BUFFER_SIZE = 1024;
 
 void handle_client(int client_socket) {
@@ -42,11 +46,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Listen to loopback address ((127.0.0.1)) only.
-  // Listen to all address use INADDR_ANY instead of INADDR_LOOPBACK
   sockaddr_in server_addr{.sin_family = AF_INET,
                           .sin_port = htons(PORT),
-                          .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)}};
+                          .sin_addr = {.s_addr = htonl(LISTEN_ADDR)}};
   sockaddr *addr = reinterpret_cast<sockaddr *>(&server_addr);
 
   if (bind(sockfd, addr, sizeof(server_addr)) == -1) {
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (listen(sockfd, 5) == -1) {
+  if (listen(sockfd, MAX_CLIENT_COUNT) == -1) {
     std::perror("Listen failed, Error");
     return 1;
   }
