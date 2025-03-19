@@ -6,11 +6,18 @@
 ## Todo list
 - [X] project folder structure
 - [X] basic build system
-- [X] a working tcp server
-- [X] a working tcp client
+- [X] tcp server
+  - [X] listen to incoming connection
+- [ ] tcp client
+  - [X] connect to a server
   - [X] send message periodically (e.g. every second)
   - [ ] Handle large response (larger than buffer size)
-    - [ ] Make send message and recivie response non-blocking
+    - [X] Make send message and recivie response non-blocking
+  - [ ] read command line options
+
+
+## Idea for improvement
+- [ ] write a class to handle all the async task for client
 
 ## Consideration
 - Use <experimental/net> header?

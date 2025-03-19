@@ -1,19 +1,56 @@
 #include <arpa/inet.h>
 #include <array>
+#include <chrono>
 #include <cstdint>
+#include <ctime>
+#include <future>
 #include <iostream>
+#include <optional>
+#include <string_view>
 #include <strings.h>
 #include <sys/socket.h>
+#include <thread>
 #include <unistd.h>
+
+using namespace std;
 
 // use fixed port for now
 const uint16_t PORT = 8080;
 const size_t BUFFER_SIZE = 1024;
-const uint SLEEP_DURATION = 1; // unit: second
+const chrono::seconds MESSAGE_PERIOD = chrono::seconds(1); // unit: second
+const chrono::seconds ZERO_SEC = chrono::seconds(0);       // unit: second
+
+auto send_message(int socketfd, string_view message) -> bool {
+  auto ret = send(socketfd, message.data(), message.size(), 0);
+  if (ret == -1) {
+    perror("Send failed, Error");
+    return false;
+  }
+  return true;
+}
+
+auto send_message_and_wait(int socketfd, string_view message,
+                           chrono::seconds wait_time) {
+  send_message(socketfd, message);
+  this_thread::sleep_for(wait_time);
+  return;
+}
+
+auto receive_message(int socketfd) -> optional<string> {
+  array<char, BUFFER_SIZE> buffer{};
+  buffer.fill(0);
+  ssize_t bytes_received = recv(socketfd, buffer.data(), BUFFER_SIZE, 0);
+  if (bytes_received <= 0) {
+    perror("Server disconnected or error occurred. Error");
+    return nullopt;
+  }
+  auto response = string(buffer.begin(), buffer.end());
+  return response;
+}
 
 int main(int argc, char **argv) {
   if (argc != 1) {
-    std::cout << argv[0] << "takes no arguments.\n";
+    cout << argv[0] << "takes no arguments.\n";
     return 1;
   }
 
@@ -21,7 +58,7 @@ int main(int argc, char **argv) {
   // use IPPROTO_TCP instead of 0, because we only care about tcp connection.
   auto sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1) {
-    std::perror("Failed to create socket, Error");
+    perror("Failed to create socket, Error");
     return 1;
   }
 
@@ -31,30 +68,33 @@ int main(int argc, char **argv) {
                           .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)}};
   sockaddr *addr = reinterpret_cast<sockaddr *>(&server_addr);
   if (connect(sockfd, addr, sizeof(server_addr)) == -1) {
-    std::perror("Connection failed, Error");
+    perror("Connection failed, Error");
     return 1;
   }
-  std::cout << "Connected to server" << std::endl;
+  cout << "Connected to server" << endl;
 
-  std::string message = "Message from client";
-  std::array<char, BUFFER_SIZE> buffer{};
+  string message = "abcdefghijklmnopqrstuvwxyz";
+
+  // Non-blocking way to send and receive message
+  auto send_msg = async(launch::async, send_message_and_wait, sockfd, message,
+                        MESSAGE_PERIOD);
+  auto receive_msg = async(launch::async, receive_message, sockfd);
 
   while (true) {
-    auto ret = send(sockfd, message.c_str(), message.size(), 0);
-    if (ret == -1) {
-      std::perror("Send failed, Error");
+    if (send_msg.wait_for(ZERO_SEC) == future_status::ready) {
+      send_msg = async(launch::async, send_message_and_wait, sockfd, message,
+                       MESSAGE_PERIOD);
     }
 
-    buffer.fill(0);
-    ssize_t bytes_received = recv(sockfd, buffer.data(), BUFFER_SIZE, 0);
-    if (bytes_received <= 0) {
-      std::perror("Server disconnected or error occurred. Error");
-      break;
+    if (receive_msg.wait_for(ZERO_SEC) == future_status::ready) {
+      auto response = receive_msg.get();
+      // Server disconnected
+      if (!response.has_value()) {
+        break;
+      }
+      cout << "Server response: " << response.value() << endl;
+      receive_msg = async(launch::async, receive_message, sockfd);
     }
-    auto response = std::string(buffer.begin(), buffer.end());
-    std::cout << "Server response: " << response << std::endl;
-
-    sleep(SLEEP_DURATION);
   }
 
   close(sockfd);
