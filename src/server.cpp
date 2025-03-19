@@ -21,6 +21,7 @@ const int QUEUE_BACKLOG = 5;
 void handle_client(FileDescriptor &&client_socket) {
   std::array<char, BUFFER_SIZE> buffer{};
   while (true) {
+    buffer.fill(0);
     ssize_t bytes_received = recv(client_socket, buffer.data(), BUFFER_SIZE, 0);
     if (bytes_received <= 0) {
       std::perror("Client disconnected or error occurred. Error");

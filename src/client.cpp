@@ -17,9 +17,9 @@
 using namespace std;
 
 const size_t BUFFER_SIZE = 1024;
-const chrono::seconds MESSAGE_PERIOD = chrono::seconds(1); // unit: second
-const chrono::seconds ZERO_SEC = chrono::seconds(0);       // unit: second
+const chrono::seconds MESSAGE_PERIOD = chrono::seconds(1);
 
+const chrono::seconds ZERO_SEC = chrono::seconds(0);
 const string_view USAGE_MSG =
     "Usage: ./client {ip_address, e.g. 127.0.0.1} {port, e.g. 8080} {client "
     "id, non-zero positive integer}";
@@ -35,7 +35,6 @@ auto send_message(int socketfd, string_view message) -> bool {
 
 auto receive_message(int socketfd) -> optional<string> {
   array<char, BUFFER_SIZE> buffer{};
-  buffer.fill(0);
   ssize_t bytes_received = recv(socketfd, buffer.data(), BUFFER_SIZE, 0);
   if (bytes_received <= 0) {
     perror("Server disconnected or error occurred. Error");
@@ -54,18 +53,21 @@ auto parse_cli_options(int argc, char **argv)
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;
 
+  // ip address
   auto ret = inet_pton(AF_INET, argv[1], &server_addr.sin_addr.s_addr);
   if (ret == -1) {
     std::perror("Parse address failed, Error");
     return std::nullopt;
   }
 
+  // port
   auto port = atoi(argv[2]);
   if (port == 0) {
     return std::nullopt;
   }
   server_addr.sin_port = htons(port);
 
+  // client id
   auto client_id = atoi(argv[3]);
   if (client_id == 0) {
     return std::nullopt;
