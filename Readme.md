@@ -11,7 +11,7 @@
 - [ ] tcp client
   - [X] connect to a server
   - [X] send message periodically (e.g. every second)
-  - [ ] Handle large response (larger than buffer size)
+  - [X] Handle large response (larger than buffer size)
     - [X] Make send message and recivie response non-blocking
   - [ ] read command line options
 
