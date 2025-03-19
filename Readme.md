@@ -8,6 +8,9 @@
 - [X] basic build system
 - [X] a working tcp server
 - [X] a working tcp client
+  - [X] send message periodically (e.g. every second)
+  - [ ] Handle large response (larger than buffer size)
+    - [ ] Make send message and recivie response non-blocking
 
 ## Consideration
 - Use <experimental/net> header?

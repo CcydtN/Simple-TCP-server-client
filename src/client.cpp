@@ -9,6 +9,7 @@
 // use fixed port for now
 const uint16_t PORT = 8080;
 const size_t BUFFER_SIZE = 1024;
+const uint SLEEP_DURATION = 1; // unit: second
 
 int main(int argc, char **argv) {
   if (argc != 1) {
@@ -35,16 +36,16 @@ int main(int argc, char **argv) {
   }
   std::cout << "Connected to server" << std::endl;
 
-  std::string message{};
+  std::string message = "Message from client";
+  std::array<char, BUFFER_SIZE> buffer{};
+
   while (true) {
-    std::cout << "Enter message: ";
-    std::getline(std::cin, message);
     auto ret = send(sockfd, message.c_str(), message.size(), 0);
     if (ret == -1) {
       std::perror("Send failed, Error");
     }
 
-    std::array<char, BUFFER_SIZE> buffer{};
+    buffer.fill(0);
     ssize_t bytes_received = recv(sockfd, buffer.data(), BUFFER_SIZE, 0);
     if (bytes_received <= 0) {
       std::perror("Server disconnected or error occurred. Error");
@@ -52,6 +53,8 @@ int main(int argc, char **argv) {
     }
     auto response = std::string(buffer.begin(), buffer.end());
     std::cout << "Server response: " << response << std::endl;
+
+    sleep(SLEEP_DURATION);
   }
 
   close(sockfd);
