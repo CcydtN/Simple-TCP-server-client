@@ -2,9 +2,12 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <future>
 #include <iostream>
+#include <netinet/in.h>
 #include <optional>
 #include <string_view>
 #include <strings.h>
@@ -19,6 +22,8 @@ const uint16_t PORT = 8080;
 const size_t BUFFER_SIZE = 16;
 const chrono::seconds MESSAGE_PERIOD = chrono::seconds(1); // unit: second
 const chrono::seconds ZERO_SEC = chrono::seconds(0);       // unit: second
+
+const string_view USAGE_MSG = "Usage: ./client {ip_address} {port}";
 
 auto send_message(int socketfd, string_view message) -> bool {
   auto ret = send(socketfd, message.data(), message.size(), 0);
@@ -48,11 +53,30 @@ auto receive_message(int socketfd) -> optional<string> {
   return response;
 }
 
+auto parse_server_addr(int argc, char **argv) -> std::optional<sockaddr_in> {
+  if (argc != 3) {
+    return std::nullopt;
+  }
+
+  sockaddr_in server_addr{.sin_family = AF_INET,
+                          .sin_port = htons(atoi(argv[2])),
+                          .sin_addr = {.s_addr = {}}};
+
+  auto ret = inet_pton(AF_INET, argv[1], &server_addr.sin_addr.s_addr);
+  if (ret == -1) {
+    std::perror("Parse address failed, Error");
+    return std::nullopt;
+  }
+  return server_addr;
+}
+
 int main(int argc, char **argv) {
-  if (argc != 1) {
-    cout << argv[0] << "takes no arguments.\n";
+  auto server_addr_opt = parse_server_addr(argc, argv);
+  if (!server_addr_opt.has_value()) {
+    cout << argv[0] << USAGE_MSG;
     return 1;
   }
+  auto server_addr = server_addr_opt.value();
 
   // Create socket
   // use IPPROTO_TCP instead of 0, because we only care about tcp connection.
@@ -62,10 +86,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Connecting to loopback address, 127.0.0.1:{port}
-  sockaddr_in server_addr{.sin_family = AF_INET,
-                          .sin_port = htons(PORT),
-                          .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)}};
   sockaddr *addr = reinterpret_cast<sockaddr *>(&server_addr);
   if (connect(sockfd, addr, sizeof(server_addr)) == -1) {
     perror("Connection failed, Error");

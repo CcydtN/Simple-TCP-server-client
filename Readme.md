@@ -13,11 +13,12 @@
   - [X] send message periodically (e.g. every second)
   - [X] Handle large response (larger than buffer size)
     - [X] Make send message and recivie response non-blocking
-  - [ ] read command line options
+  - [X] read command line options
 
 
 ## Idea for improvement
 - [ ] write a class to handle all the async task for client
+- [ ] Wrap file descriptor to handle `close` when out of scope
 
 ## Consideration
 - Use <experimental/net> header?
