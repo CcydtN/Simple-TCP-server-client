@@ -29,6 +29,8 @@ void handle_client(FileDescriptor &&client_socket) {
     }
     auto message = std::string(buffer.begin(), buffer.end());
     std::cout << "Received: " << message << std::endl;
+
+    // echo back the message
     send(client_socket, buffer.data(), bytes_received, 0);
   }
 }

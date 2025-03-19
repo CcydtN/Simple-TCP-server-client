@@ -1,5 +1,4 @@
 #include "./common.h"
-#include <arpa/inet.h>
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -7,7 +6,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <format>
-#include <future>
 #include <iostream>
 #include <netinet/in.h>
 #include <optional>
@@ -39,13 +37,6 @@ auto send_message(int socketfd, string_view message) -> bool {
     return false;
   }
   return true;
-}
-
-auto send_message_and_wait(int socketfd, string_view message,
-                           chrono::seconds wait_time) {
-  send_message(socketfd, message);
-  this_thread::sleep_for(wait_time);
-  return;
 }
 
 auto receive_message(int socketfd) -> optional<string> {
@@ -112,37 +103,28 @@ int main(int argc, char **argv) {
   }
   cout << "Connected to server" << endl;
 
-  uint8_t message_count = 0;
-
-  auto send_msg = [&client_socket, &message_count, &client_id]() {
-    auto message = std::format("This is message {} from client {}",
-                               message_count, client_id);
-    return send_message_and_wait(client_socket, message, MESSAGE_PERIOD);
-  };
-  auto receive_msg = [&client_socket]() {
-    return receive_message(client_socket);
-  };
-
-  auto send_msg_future = async(launch::async, send_msg);
-  auto receive_msg_future = async(launch::async, receive_msg);
+  // Create a thread for sending message only, it doesn't need to communicate
+  // the main process
+  auto send_msg_thread = std::thread([&client_socket, &client_id]() {
+    uint8_t message_count = 0;
+    while (true) {
+      auto message = std::format("This is message {} from client {}",
+                                 message_count, client_id);
+      send_message(client_socket, message);
+      std::this_thread::sleep_for(MESSAGE_PERIOD);
+      message_count += 1;
+    }
+  });
+  send_msg_thread.detach();
 
   while (true) {
-    // Check if it can send another message
-    if (send_msg_future.wait_for(ZERO_SEC) == future_status::ready) {
-      message_count += 1;
-      send_msg_future = async(launch::async, send_msg);
-    }
-
     // Check if it receive any message
-    if (receive_msg_future.wait_for(ZERO_SEC) == future_status::ready) {
-      auto response = receive_msg_future.get();
-      // Server disconnected
-      if (!response.has_value()) {
-        break;
-      }
-      cout << "Server response: " << response.value() << endl;
-      receive_msg_future = async(launch::async, receive_msg);
+    auto response = receive_message(client_socket);
+    // Server disconnected
+    if (!response.has_value()) {
+      break;
     }
+    cout << "Server response: " << response.value() << endl;
   }
 
   return 0;
