@@ -6,8 +6,8 @@
 ## Todo list
 - [X] project folder structure
 - [X] basic build system
-- [ ] a working tcp server
-- [ ] a working tcp client
+- [X] a working tcp server
+- [X] a working tcp client
 
 ## Consideration
 - Use <experimental/net> header?
