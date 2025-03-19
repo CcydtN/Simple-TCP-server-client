@@ -9,7 +9,6 @@
 #include <strings.h>
 #include <sys/socket.h>
 #include <thread>
-#include <unistd.h>
 
 // Listen to loopback address ((127.0.0.1)) only.
 // Listen to all address use INADDR_ANY instead of INADDR_LOOPBACK
